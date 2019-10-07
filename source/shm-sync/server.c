@@ -15,7 +15,7 @@ void communicate(struct SyncMap* sync,
     void* buffer = malloc(args->size);
 
     // Wait for signal from client
-    sync_wait(sync->server);
+    sync_wait(sync->mutex);
     setup_benchmarks(&bench);
 
     for (message = 0; message < args->count; ++message) {
@@ -26,15 +26,15 @@ void communicate(struct SyncMap* sync,
         // Write into the memory
         memset(sync->shared_memory, '1', args->size);
 
-        sync_notify(sync->client);
-        sync_wait(sync->server);
+        sync_notify(sync->mutex);
+        sync_wait(sync->mutex);
 
         //printf("2\n");
 
         // Read
         memcpy(buffer, sync->shared_memory, args->size);
 
-        sync_notify(sync->client);
+        sync_notify(sync->mutex);
 
         //printf("3\n");
 
@@ -42,8 +42,6 @@ void communicate(struct SyncMap* sync,
     }
 
     evaluate(&bench, args);
-
-    sleep(1);
     free(buffer);
 }
 

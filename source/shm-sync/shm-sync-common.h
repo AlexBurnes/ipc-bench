@@ -20,16 +20,14 @@ struct SyncMutex {
 // what to be in shared memory
 struct SyncMem {
     //void * sizeof arg size
-    struct SyncMutex client;
-    struct SyncMutex server;
+    struct SyncMutex mutex;
 };
 
 // and what to be in application
 struct SyncMap {
     int shm_fd;
     void *shared_memory;
-    struct SyncMutex *client;
-    struct SyncMutex *server;
+    struct SyncMutex *mutex;
 };
 
 void init_sync(struct SyncMap* sync);

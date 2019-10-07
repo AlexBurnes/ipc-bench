@@ -12,12 +12,12 @@ void communicate(struct SyncMap* sync,
     // Buffer into which to read data
     void* buffer = malloc(args->size);
 
-    sync_notify(sync->server);
+    sync_notify(sync->mutex);
 
     //printf("4\n");
 
     for (; args->count > 0; --args->count) {
-        sync_wait(sync->client);
+        sync_wait(sync->mutex);
 
         //printf("5\n");
 
@@ -28,7 +28,7 @@ void communicate(struct SyncMap* sync,
 
         //printf("6\n");
 
-        sync_notify(sync->server);
+        sync_notify(sync->mutex);
 
         //printf("7\n");
     }
@@ -44,8 +44,6 @@ int main(int argc, char* argv[]) {
     // Fetch command-line arguments
     struct Arguments args;
     parse_arguments(&args, argc, argv);
-
-    sleep(1);
 
     open_segment(&sync, "shm-sync", &args);
 

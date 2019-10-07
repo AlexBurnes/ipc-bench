@@ -14,8 +14,7 @@ void init_sync(struct SyncMap * sync) {
     pthread_mutexattr_t mutex_attributes;
     pthread_condattr_t condition_attributes;
 
-    sync->client->count = 0;
-    sync->server->count = 0;
+    sync->mutex->count = 0;
 
     // These methods initialize the attribute structures
     // with default values so that we must only change
@@ -48,18 +47,10 @@ void init_sync(struct SyncMap * sync) {
     // clang-format on
 
     // Initialize the mutex and condition variable and pass the attributes
-    if (pthread_mutex_init(&sync->server->mutex, &mutex_attributes) != 0) {
+    if (pthread_mutex_init(&sync->mutex->mutex, &mutex_attributes) != 0) {
         throw("Error initializing mutex");
     }
-    if (pthread_cond_init(&sync->server->condition, &condition_attributes) != 0) {
-        throw("Error initializing condition variable");
-    }
-
-    // Initialize the mutex and condition variable and pass the attributes
-    if (pthread_mutex_init(&sync->client->mutex, &mutex_attributes) != 0) {
-        throw("Error initializing mutex");
-    }
-    if (pthread_cond_init(&sync->client->condition, &condition_attributes) != 0) {
+    if (pthread_cond_init(&sync->mutex->condition, &condition_attributes) != 0) {
         throw("Error initializing condition variable");
     }
 
@@ -73,16 +64,10 @@ void init_sync(struct SyncMap * sync) {
 }
 
 void destroy_sync(struct SyncMap* sync) {
-    if (pthread_mutex_destroy(&sync->server->mutex)) {
+    if (pthread_mutex_destroy(&sync->mutex->mutex)) {
         throw("Error destroying mutex");
     }
-    if (pthread_cond_destroy(&sync->server->condition)) {
-        throw("Error destroying condition variable");
-    }
-    if (pthread_mutex_destroy(&sync->client->mutex)) {
-        throw("Error destroying mutex");
-    }
-    if (pthread_cond_destroy(&sync->client->condition)) {
+    if (pthread_cond_destroy(&sync->mutex->condition)) {
         throw("Error destroying condition variable");
     }
 }
@@ -198,7 +183,7 @@ int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args)
 
     sync->shm_fd = shm_open(name, O_RDWR|O_CREAT|O_EXCL, 0660);
     if (errno == EEXIST) {
-        printf("already exists '%s'\n", name);
+        //printf("already exists '%s'\n", name);
         sync->shm_fd = shm_open(name, O_RDWR, 0660);
         mutex_created = 0;
     }
@@ -207,7 +192,7 @@ int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args)
         return -1;
     }
 
-    printf("open shared memory '%s' [%d]\n", name, sync->shm_fd);
+    //printf("open shared memory '%s' [%d]\n", name, sync->shm_fd);
 
     size_t size = sizeof(struct SyncMem) + args->size;
 
@@ -219,7 +204,7 @@ int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args)
 
     void *addr;
 
-    printf("mmap size of %ld\n", size);
+    //printf("mmap size of %ld\n", size);
     addr = mmap(
         NULL,
         size,
@@ -235,16 +220,15 @@ int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args)
     }
 
     sync->shared_memory = addr;
-    sync->client        = (struct SyncMutex *) ((char *)addr + args->size);
-    sync->server        = (struct SyncMutex *) ((char *)addr + args->size + sizeof(struct SyncMutex));
+    sync->mutex        = (struct SyncMutex *) ((char *)addr + args->size);
 
-    printf("empty shared memory\n");
+    //printf("empty shared memory\n");
     memset(sync->shared_memory, 0, args->size);
 
     if (mutex_created) {
-        printf("create mutex\n");
+        //printf("create mutex\n");
         init_sync(sync);
     }
-    printf("init done\n");
+    //printf("init done\n");
     return 0;
 }
