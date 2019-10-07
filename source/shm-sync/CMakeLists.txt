@@ -10,6 +10,6 @@ add_executable(shm-sync shm-sync.c)
 ## COMMON
 ###########################################################
 
-target_link_libraries(shm-sync-client ipc-bench-common pthread)
-target_link_libraries(shm-sync-server ipc-bench-common pthread)
+target_link_libraries(shm-sync-client ipc-bench-common pthread rt)
+target_link_libraries(shm-sync-server ipc-bench-common pthread rt)
 target_link_libraries(shm-sync ipc-bench-common)
