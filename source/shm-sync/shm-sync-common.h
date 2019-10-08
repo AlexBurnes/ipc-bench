@@ -26,8 +26,10 @@ struct SyncMem {
 // and what to be in application
 struct SyncMap {
     int shm_fd;
+    char *name;
     void *shared_memory;
     struct SyncMutex *mutex;
+    int created;
 };
 
 void init_sync(struct SyncMap* sync);
@@ -40,12 +42,7 @@ void sync_notify(struct SyncMutex* sync);
 
 int cleanup(struct SyncMap *sync, struct Arguments* args);
 
-int create_segment(struct Arguments* args);
-
 int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args);
-
-void* attach_segment(int segment_id, struct Arguments* args);
-
-struct Sync* create_sync(void* shared_memory, struct Arguments* args);
+int drop_segment(struct SyncMap *sync);
 
 #endif /* SHM_SYNC_COMMON_H */

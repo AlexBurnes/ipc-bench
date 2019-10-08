@@ -133,6 +133,12 @@ int cleanup(struct SyncMap *sync, struct Arguments* args) {
         return -1;
     }
 
+    if (sync->created) {
+        destroy_sync(sync);
+    }
+
+    drop_segment(sync);
+
     return 0;
 
 }
@@ -140,52 +146,26 @@ int cleanup(struct SyncMap *sync, struct Arguments* args) {
 
 #include <stdio.h>
 
-int create_segment(struct Arguments* args) {
-    // The identifier for the shared memory segment
-    int segment_id;
-
-    // Key for the memory segment
-    key_t segment_key = generate_key("shm");
-
-    // The size for the segment
-    int size = args->size + sizeof(*(struct SyncMem*)0);
-
-    /*
-        The call that actually allocates the shared memory segment.
-        Arguments:
-            1. The shared memory key. This must be unique across the OS.
-            2. The number of bytes to allocate. This will be rounded up to the OS'
-                 pages size for alignment purposes.
-            3. The creation flags and permission bits, where:
-                 - IPC_CREAT means that a new segment is to be created
-                 - IPC_EXCL means that the call will fail if
-                     the segment-key is already taken (removed)
-                 - 0666 means read + write permission for user, group and world.
-        When the shared memory key already exists, this call will fail. To see
-        which keys are currently in use, and to remove a certain segment, you
-        can use the following shell commands:
-            - Use `ipcs -m` to show shared memory segments and their IDs
-            - Use `ipcrm -m <segment_id>` to remove/deallocate a shared memory segment
-    */
-    segment_id = shmget(segment_key, size, IPC_CREAT | 0666);
-
-    if (segment_id < 0) {
-        throw("Error allocating segment");
+int drop_segment(struct SyncMap *sync) {
+    if (-1 == shm_unlink(sync->name)) {
+        perror("shm unlink");
+        return -1;
     }
-
-    return segment_id;
+    return 0;
 }
 
 int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args) {
-    int mutex_created = 1;
 
     memset(sync, 0, sizeof(struct SyncMap));
 
+    sync->name = (char *)name;
+
+    sync->created = 1;
     sync->shm_fd = shm_open(name, O_RDWR|O_CREAT|O_EXCL, 0660);
     if (errno == EEXIST) {
         //printf("already exists '%s'\n", name);
         sync->shm_fd = shm_open(name, O_RDWR, 0660);
-        mutex_created = 0;
+        sync->created = 0;
     }
     if (-1 == sync->shm_fd) {
         perror("shm_open");
@@ -225,7 +205,7 @@ int open_segment(struct SyncMap *sync, char const *name, struct Arguments* args)
     //printf("empty shared memory\n");
     memset(sync->shared_memory, 0, args->size);
 
-    if (mutex_created) {
+    if (sync->created) {
         //printf("create mutex\n");
         init_sync(sync);
     }
